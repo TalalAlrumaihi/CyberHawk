@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberHawk — Drone-Based Wireless Security Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hawk-green: #c0392b;
+    --hawk-cyan: #e8e8e8;
+    --hawk-dark: #0d0305;
+    --hawk-mid: #1a0608;
+    --hawk-panel: #200a0c;
+    --hawk-red: #ff6b6b;
+    --hawk-yellow: #f0c0c0;
+    --hawk-text: #d4b8ba;
+    --hawk-dim: #7a4a50;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--hawk-dark);
+    color: var(--hawk-text);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── ANIMATED GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(192,57,43,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(192,57,43,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 48px;
+    background: rgba(13,3,5,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(192,57,43,0.2);
+  }
+  .nav-logo {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 1.3rem;
+    color: #ffffff;
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px rgba(192,57,43,0.8);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--hawk-green); }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a {
+    color: var(--hawk-text); text-decoration: none;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+    letter-spacing: 1px; text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #fff; }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 120px 24px 80px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  /* Radar circle */
+  .radar-bg {
+    position: absolute;
+    width: 700px; height: 700px;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .radar-ring {
+    position: absolute; border-radius: 50%;
+    border: 1px solid rgba(192,57,43,0.20);
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+  }
+  .radar-ring:nth-child(1) { width: 200px; height: 200px; }
+  .radar-ring:nth-child(2) { width: 350px; height: 350px; border-color: rgba(192,57,43,0.14); }
+  .radar-ring:nth-child(3) { width: 500px; height: 500px; border-color: rgba(192,57,43,0.09); }
+  .radar-ring:nth-child(4) { width: 700px; height: 700px; border-color: rgba(192,57,43,0.05); }
+
+  /* Sweep */
+  .radar-sweep {
+    position: absolute;
+    width: 350px; height: 350px;
+    top: 50%; left: 50%; transform-origin: 0% 100%;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(192,57,43,0.10) 30deg,
+      rgba(192,57,43,0.35) 60deg,
+      transparent 61deg
+    );
+    border-radius: 50%;
+    animation: radar-spin 4s linear infinite;
+  }
+  @keyframes radar-spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  /* Blips */
+  .blip {
+    position: absolute;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--hawk-green);
+    box-shadow: 0 0 12px var(--hawk-green);
+    animation: blip-fade 4s ease-in-out infinite;
+  }
+  @keyframes blip-fade {
+    0%,100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .blip:nth-child(5) { top: 30%; left: 58%; animation-delay: 0.5s; }
+  .blip:nth-child(6) { top: 55%; left: 38%; animation-delay: 1.8s; }
+  .blip:nth-child(7) { top: 42%; left: 65%; animation-delay: 2.5s; }
+  .blip:nth-child(8) { top: 62%; left: 55%; animation-delay: 0.9s; }
+
+  .hero-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 4px;
+    color: var(--hawk-green);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: inline-flex; align-items: center; gap: 10px;
+    opacity: 0; animation: fade-up 0.8s 0.2s forwards;
+  }
+  .hero-badge::before, .hero-badge::after {
+    content: ''; width: 40px; height: 1px; background: var(--hawk-green);
+    box-shadow: 0 0 6px var(--hawk-green);
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    line-height: 1.05;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(192,57,43,0.5);
+    opacity: 0; animation: fade-up 0.8s 0.4s forwards;
+  }
+  h1 .accent { color: var(--hawk-green); }
+
+  .hero-sub {
+    font-size: 1.05rem; font-weight: 300;
+    color: var(--hawk-text); max-width: 580px;
+    line-height: 1.8; margin: 28px auto 0;
+    opacity: 0; animation: fade-up 0.8s 0.6s forwards;
+    border-left: 2px solid rgba(192,57,43,0.4);
+    padding-left: 20px;
+    text-align: left;
+  }
+
+  .hero-cta {
+    margin-top: 48px;
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    opacity: 0; animation: fade-up 0.8s 0.8s forwards;
+  }
+  .btn-primary {
+    background: transparent;
+    border: 1px solid var(--hawk-green);
+    color: var(--hawk-green);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 14px 36px; cursor: pointer;
+    position: relative; overflow: hidden;
+    text-decoration: none;
+    transition: all 0.3s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .btn-primary::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--hawk-green);
+    transform: translateX(-100%); transition: transform 0.3s;
+    z-index: -1;
+  }
+  .btn-primary:hover { color: #000; }
+  .btn-primary:hover::before { transform: translateX(0); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid rgba(192,57,43,0.5);
+    color: var(--hawk-cyan);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 14px 36px; cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .btn-secondary:hover { border-color: var(--hawk-cyan); background: rgba(192,57,43,0.14); }
+
+  /* Stats strip */
+  .hero-stats {
+    display: flex; gap: 48px; justify-content: center; flex-wrap: wrap;
+    margin-top: 64px;
+    opacity: 0; animation: fade-up 0.8s 1s forwards;
+  }
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem; font-weight: 900;
+    color: var(--hawk-cyan);
+    text-shadow: 0 0 20px rgba(192,57,43,0.5);
+  }
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; color: var(--hawk-dim);
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION BASE ── */
+  section { position: relative; z-index: 1; }
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 5px;
+    color: var(--hawk-green); text-transform: uppercase;
+    margin-bottom: 14px;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .section-label::before {
+    content: ''; width: 28px; height: 1px;
+    background: var(--hawk-green);
+    box-shadow: 0 0 6px var(--hawk-green);
+  }
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-weight: 700; font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    color: #fff; line-height: 1.15;
+    letter-spacing: 1px;
+  }
+  .section-title span { color: var(--hawk-green); }
+
+  /* ── HOW IT WORKS ── */
+  #how {
+    padding: 100px 24px;
+    background: linear-gradient(180deg, transparent 0%, rgba(4,26,42,0.6) 100%);
+  }
+  .how-wrap { max-width: 1100px; margin: 0 auto; }
+  .how-header { text-align: center; margin-bottom: 72px; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2px;
+    position: relative;
+  }
+  .steps::before {
+    content: '';
+    position: absolute; top: 52px; left: 10%; right: 10%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(192,57,43,0.4), transparent);
+  }
+
+  .step {
+    padding: 40px 28px;
+    background: var(--hawk-panel);
+    border: 1px solid rgba(192,57,43,0.12);
+    border-bottom: 3px solid transparent;
+    position: relative;
+    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  }
+  .step:hover {
+    border-color: rgba(192,57,43,0.4);
+    border-bottom-color: var(--hawk-green);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(192,57,43,0.1);
+  }
+  .step:first-child { border-left: 2px solid var(--hawk-green); }
+  .step:last-child { border-right: 2px solid var(--hawk-red); }
+
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.5rem; font-weight: 900;
+    color: rgba(192,57,43,0.20);
+    line-height: 1; margin-bottom: 20px;
+  }
+  .step-icon {
+    font-size: 2rem; margin-bottom: 16px;
+    display: block;
+  }
+  .step-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem; font-weight: 700;
+    color: #fff; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .step p {
+    font-size: 0.88rem; line-height: 1.7; color: var(--hawk-text);
+  }
+
+  /* ── VIDEO SECTION ── */
+  #demo {
+    padding: 100px 24px;
+    background: var(--hawk-mid);
+  }
+  .demo-wrap { max-width: 1000px; margin: 0 auto; }
+  .demo-header { text-align: center; margin-bottom: 48px; }
+
+  .video-frame {
+    position: relative;
+    background: #000;
+    border: 1px solid rgba(192,57,43,0.25);
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(192,57,43,0.12), inset 0 0 60px rgba(0,0,0,0.5);
+  }
+  /* Corner decorations */
+  .video-frame::before, .video-frame::after {
+    content: '';
+    position: absolute;
+    width: 24px; height: 24px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .video-frame::before {
+    top: 0; left: 0;
+    border-top: 2px solid var(--hawk-green);
+    border-left: 2px solid var(--hawk-green);
+  }
+  .video-frame::after {
+    bottom: 0; right: 0;
+    border-bottom: 2px solid var(--hawk-green);
+    border-right: 2px solid var(--hawk-green);
+  }
+  .corner-tr, .corner-bl {
+    position: absolute; width: 24px; height: 24px;
+    z-index: 10; pointer-events: none;
+  }
+  .corner-tr { top: 0; right: 0; border-top: 2px solid var(--hawk-green); border-right: 2px solid var(--hawk-green); }
+  .corner-bl { bottom: 0; left: 0; border-bottom: 2px solid var(--hawk-green); border-left: 2px solid var(--hawk-green); }
+
+
+
+  /* Scan bar under video */
+  .scan-bar {
+    height: 3px;
+    background: linear-gradient(90deg, #c0392b, #ffffff, #c0392b);
+    animation: scan-move 2s ease-in-out infinite;
+    background-size: 200% 100%;
+  }
+  @keyframes scan-move {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  /* ── CAPABILITIES ── */
+  #capabilities {
+    padding: 100px 24px;
+  }
+  .cap-wrap { max-width: 1100px; margin: 0 auto; }
+  .cap-header { text-align: center; margin-bottom: 72px; }
+
+  .cap-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 768px) {
+    /* Nav */
+    nav { padding: 14px 20px; }
+    .nav-links { display: none; }
+
+    /* Hero */
+    #hero { padding: 100px 20px 60px; }
+    .radar-bg { width: 340px; height: 340px; }
+    .radar-ring:nth-child(3), .radar-ring:nth-child(4) { display: none; }
+    .radar-sweep { width: 170px; height: 170px; }
+    h1 { font-size: 2.4rem; letter-spacing: 1px; }
+    .hero-sub { font-size: 0.95rem; }
+    .hero-badge { font-size: 0.65rem; letter-spacing: 2px; }
+    .hero-badge::before, .hero-badge::after { width: 20px; }
+    .btn-primary, .btn-secondary { padding: 12px 24px; font-size: 0.72rem; }
+    .hero-stats { gap: 24px; margin-top: 40px; }
+    .stat-num { font-size: 1.5rem; }
+
+    /* Sections */
+    #how, #demo, #capabilities, #metrics, #team { padding: 64px 16px; }
+    .how-header, .demo-header, .cap-header, .metrics-header, .team-header { margin-bottom: 40px; }
+    .steps::before { display: none; }
+    .step { padding: 28px 20px; }
+
+    /* Capabilities */
+    .cap-grid { grid-template-columns: 1fr; gap: 16px; }
+    .cap-card { padding: 24px 20px; }
+
+    /* Metrics */
+    .metrics-grid { grid-template-columns: 1fr 1fr; gap: 2px; }
+    .metric-cell { padding: 24px 12px; }
+    .metric-val { font-size: 1.8rem; }
+
+    /* Video strip */
+    #demo > .demo-wrap > div:last-child { grid-template-columns: 1fr !important; }
+
+    /* Team */
+    .team-grid { grid-template-columns: 1fr; gap: 16px; }
+    .team-card { padding: 28px 24px; }
+
+    /* Footer */
+    footer { padding: 32px 16px; }
+  }
+
+  .cap-card {
+    padding: 36px;
+    background: var(--hawk-panel);
+    border: 1px solid rgba(192,57,43,0.12);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  }
+  .cap-card:hover {
+    border-color: rgba(192,57,43,0.45);
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(192,57,43,0.08);
+  }
+  .cap-card.offensive { border-top: 2px solid var(--hawk-red); }
+  .cap-card.defensive { border-top: 2px solid var(--hawk-green); }
+  .cap-card.ai { border-top: 2px solid #fff; }
+  .cap-card.coverage { border-top: 2px solid var(--hawk-yellow); }
+
+  .cap-card::after {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle at top right, rgba(192,57,43,0.08), transparent 70%);
+  }
+  .cap-card.offensive::after { background: radial-gradient(circle at top right, rgba(192,57,43,0.12), transparent 70%); }
+
+  .cap-tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 2px;
+    text-transform: uppercase; padding: 4px 10px;
+    margin-bottom: 16px;
+  }
+  .offensive .cap-tag { background: rgba(255,51,85,0.12); color: var(--hawk-red); border: 1px solid rgba(255,51,85,0.3); }
+  .defensive .cap-tag { background: rgba(0,255,136,0.1); color: var(--hawk-green); border: 1px solid rgba(192,57,43,0.4); }
+  .ai .cap-tag { background: rgba(192,57,43,0.12); color: var(--hawk-cyan); border: 1px solid rgba(192,57,43,0.35); }
+  .coverage .cap-tag { background: rgba(255,215,0,0.1); color: var(--hawk-yellow); border: 1px solid rgba(255,215,0,0.3); }
+
+  .cap-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem; font-weight: 700;
+    color: #fff; margin-bottom: 16px;
+  }
+  .cap-list {
+    list-style: none; display: flex; flex-direction: column; gap: 10px;
+  }
+  .cap-list li {
+    display: flex; align-items: flex-start; gap: 12px;
+    font-size: 0.88rem; line-height: 1.5;
+  }
+  .cap-list li::before {
+    content: '▹'; color: var(--hawk-dim);
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .offensive .cap-list li::before { color: var(--hawk-red); }
+  .defensive .cap-list li::before { color: var(--hawk-green); }
+  .ai .cap-list li::before { color: #fff; }
+  .coverage .cap-list li::before { color: var(--hawk-yellow); }
+
+  /* ── METRICS ── */
+  #metrics {
+    padding: 100px 24px;
+    background: var(--hawk-mid);
+  }
+  .metrics-wrap { max-width: 1000px; margin: 0 auto; }
+  .metrics-header { text-align: center; margin-bottom: 64px; }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2px;
+  }
+  .metric-cell {
+    background: var(--hawk-panel);
+    padding: 40px 24px;
+    text-align: center;
+    border: 1px solid rgba(192,57,43,0.14);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  }
+  .metric-cell::before {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--hawk-green), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .metric-cell:hover {
+    border-color: rgba(192,57,43,0.4);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(0,0,0,0.4);
+  }
+  .metric-cell:hover::before { opacity: 1; }
+  .metric-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.4rem; font-weight: 900;
+    line-height: 1;
+  }
+  .metric-val.green { color: var(--hawk-green); text-shadow: 0 0 20px rgba(192,57,43,0.5); }
+  .metric-val.cyan  { color: #fff;  text-shadow: 0 0 20px rgba(192,57,43,0.5); }
+  .metric-val.red   { color: var(--hawk-red);   text-shadow: 0 0 20px rgba(192,57,43,0.4); }
+  .metric-val.gold  { color: var(--hawk-yellow); text-shadow: 0 0 20px rgba(192,57,43,0.4); }
+
+  .metric-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 2px;
+    color: var(--hawk-dim); text-transform: uppercase;
+    margin-top: 10px;
+  }
+  .metric-desc {
+    font-size: 0.78rem; color: rgba(168,200,224,0.6);
+    margin-top: 6px; line-height: 1.5;
+  }
+
+  /* Progress bar */
+  .prog-wrap { margin-top: 16px; }
+  .prog-bar {
+    height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px;
+    overflow: hidden;
+  }
+  .prog-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 1.5s ease;
+  }
+  .prog-fill.green { background: var(--hawk-green); box-shadow: 0 0 8px var(--hawk-green); }
+  .prog-fill.cyan  { background: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+
+  /* ── TEAM ── */
+  #team { padding: 100px 24px; }
+  .team-wrap { max-width: 1100px; margin: 0 auto; }
+  .team-header { text-align: center; margin-bottom: 64px; }
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+  }
+  .team-card {
+    background: var(--hawk-panel);
+    border: 1px solid rgba(192,57,43,0.15);
+    border-top: 3px solid var(--hawk-green);
+    padding: 36px 32px;
+    transition: border-color 0.3s, transform 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .team-card::after {
+    content: '';
+    position: absolute; bottom: 0; right: 0;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle at bottom right, rgba(192,57,43,0.08), transparent 70%);
+  }
+  .team-card.hardware {
+    border-top: 3px solid #fff;
+    background: linear-gradient(135deg, var(--hawk-panel) 0%, rgba(40,10,12,1) 100%);
+  }
+  .team-card:hover { border-color: rgba(192,57,43,0.5); transform: translateY(-5px); }
+  .team-avatar {
+    width: 64px; height: 64px; margin: 0 0 16px;
+    background: rgba(192,57,43,0.1);
+    border: 1px solid rgba(192,57,43,0.3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+  }
+  .team-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem; font-weight: 700;
+    color: #fff; letter-spacing: 1px; margin-bottom: 10px; line-height: 1.4;
+  }
+  .team-role-tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 2px;
+    text-transform: uppercase; padding: 4px 12px;
+    background: rgba(192,57,43,0.12);
+    color: var(--hawk-green);
+    border: 1px solid rgba(192,57,43,0.3);
+    margin-bottom: 20px;
+  }
+  .team-role-tag.hw {
+    background: rgba(255,255,255,0.07);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .team-divider {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(192,57,43,0.5), transparent);
+    margin-bottom: 20px;
+  }
+  .team-duties { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .team-duties li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 0.84rem; line-height: 1.5; color: var(--hawk-text);
+  }
+  .team-duties li::before {
+    content: '▸'; color: var(--hawk-green);
+    flex-shrink: 0; margin-top: 1px; font-size: 0.75rem;
+  }
+  .team-card.hardware .team-duties li::before { color: #ccc; }
+  .team-supervisor {
+    text-align: center; margin-top: 48px; padding: 32px;
+    background: rgba(192,57,43,0.05);
+    border: 1px solid rgba(192,57,43,0.2);
+    position: relative;
+  }
+  .team-supervisor::before {
+    content: '';
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 2px; background: var(--hawk-green);
+  }
+  .team-supervisor .sup-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 3px;
+    color: var(--hawk-dim); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .team-supervisor .sup-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem; color: #fff; font-weight: 700; margin-bottom: 6px;
+  }
+  .team-supervisor .sup-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; color: var(--hawk-dim); letter-spacing: 1px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 48px 24px;
+    border-top: 1px solid rgba(192,57,43,0.2);
+    text-align: center;
+    background: var(--hawk-dark);
+    position: relative;
+  }
+  footer::before {
+    content: '';
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--hawk-green), transparent);
+  }
+  .footer-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem; font-weight: 900;
+    color: var(--hawk-green); letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+  .footer-logo span { color: var(--hawk-green); }
+  .footer-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; color: var(--hawk-dim);
+    letter-spacing: 2px;
+  }
+  .footer-disclaimer {
+    margin-top: 24px;
+    font-size: 0.72rem; color: rgba(58,90,112,0.8);
+    line-height: 1.6; max-width: 600px; margin-inline: auto;
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#hero">CYBER<span>HAWK</span></a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#demo">Demo</a></li>
+    <li><a href="#capabilities">Capabilities</a></li>
+    <li><a href="#metrics">Results</a></li>
+    <li><a href="#team">Team</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="radar-bg">
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-sweep"></div>
+    <div class="blip"></div>
+    <div class="blip"></div>
+    <div class="blip"></div>
+    <div class="blip"></div>
+  </div>
+
+  <div class="hero-badge">Drone-Based Wireless Security</div>
+
+  <h1>CYBER<span class="accent">HAWK</span></h1>
+
+  <p class="hero-sub">
+    An autonomous UAV-based wireless security assessment platform that integrates
+    real-time network scanning, AI-powered vulnerability detection, and instant
+    security reporting — airborne.
+  </p>
+
+  <div class="hero-cta">
+    <a href="#demo" class="btn-primary">▶ Watch Demo</a>
+    <a href="#how" class="btn-secondary">How It Works</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-num">91.6%</div>
+      <div class="stat-label">Detection Rate</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">~3 min</div>
+      <div class="stat-label">Password Crack</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">+167%</div>
+      <div class="stat-label">Coverage Boost</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt;1 sec</div>
+      <div class="stat-label">Report Speed</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="how-wrap">
+    <div class="how-header reveal">
+      <div class="section-label">// Process</div>
+      <h2 class="section-title">How <span>CyberHawk</span> Works</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <span class="step-icon">🚁</span>
+        <div class="step-title">Deploy the Drone</div>
+        <p>The UAV is launched and the Raspberry Pi boots into Kali Linux. The wireless adapter enters <strong>monitor mode</strong>, ready to passively capture all 802.11 frames in the area — no association required.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:0.1s">
+        <div class="step-num">02</div>
+        <span class="step-icon">📡</span>
+        <div class="step-title">Scan Networks</div>
+        <p>As the drone flies, our custom scanning engine sweeps all channels across both <strong>2.4GHz and 5GHz</strong> bands, logging SSID, BSSID, encryption type, WPS status, and signal strength for every detected access point.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:0.2s">
+        <div class="step-num">03</div>
+        <span class="step-icon">🔍</span>
+        <div class="step-title">Detect Vulnerabilities</div>
+        <p>CyberHawk's intelligence engine classifies each network: <strong>WEP = High Risk</strong>, WPS-enabled = Medium Risk, WPA3 = Low Risk. Weak targets undergo fully automated controlled penetration testing.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:0.3s">
+        <div class="step-num">04</div>
+        <span class="step-icon">📋</span>
+        <div class="step-title">Generate Report</div>
+        <p>Within seconds of landing, a full <strong>security audit report</strong> is generated — with risk classifications, vulnerability details, and specific remediation steps — instantly displayed on-screen.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VIDEO DEMO -->
+<section id="demo">
+  <div class="demo-wrap">
+    <div class="demo-header reveal">
+      <div class="section-label">// Live Demo</div>
+      <h2 class="section-title">See <span>CyberHawk</span> in Action</h2>
+      <p style="margin-top:12px; color: var(--hawk-text); font-size:0.9rem; line-height:1.7;">
+        Watch the full platform in operation — from drone deployment to vulnerability detection and instant report generation.
+      </p>
+    </div>
+    <div class="video-frame reveal">
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+      <!-- 
+        ══════════════════════════════════════════════════
+        TO EMBED YOUR VIDEO:
+        Replace the placeholder below with ONE of these:
+
+        OPTION A – YouTube embed:
+        <iframe src="https://www.youtube.com/embed/YOUR_VIDEO_ID" allowfullscreen></iframe>
+
+        OPTION B – Direct MP4 file:
+        <video src="your-video.mp4" controls poster="your-thumbnail.jpg"></video>
+
+        OPTION C – Google Drive embed:
+        <iframe src="https://drive.google.com/file/d/YOUR_FILE_ID/preview" allowfullscreen></iframe>
+        ══════════════════════════════════════════════════
+      -->
+      <div style="position:relative; width:100%; aspect-ratio:16/9; background:#000;">
+        <iframe 
+          src="https://drive.google.com/file/d/1Q8KzIyFvsYGS9sj1zAXfbKYXFQQZ0_a-/preview?rm=minimal" 
+          width="100%" 
+          height="100%" 
+          style="position:absolute; top:0; left:0; border:none;" 
+          allow="autoplay"
+          allowfullscreen>
+        </iframe>
+      </div>
+      <!-- ─── END VIDEO SLOT ─── -->
+      <div class="scan-bar"></div>
+    </div>
+
+    <!-- Quick feature highlights below video -->
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin-top:24px;">
+      <div style="background:var(--hawk-panel); border:1px solid rgba(192,57,43,0.12); padding:20px 16px; text-align:center;">
+        <div style="font-family:'Orbitron',monospace; font-size:0.75rem; color:var(--hawk-green); margin-bottom:6px;">OFFENSIVE MODE</div>
+        <div style="font-size:0.8rem; color:var(--hawk-text);">WEP/WPA cracking, WPS brute-force, rogue AP detection</div>
+      </div>
+      <div style="background:var(--hawk-panel); border:1px solid rgba(192,57,43,0.12); padding:20px 16px; text-align:center;">
+        <div style="font-family:'Orbitron',monospace; font-size:0.75rem; color:var(--hawk-cyan); margin-bottom:6px;">DEFENSIVE MODE</div>
+        <div style="font-size:0.8rem; color:var(--hawk-text);">Threat classification, instant on-screen security report</div>
+      </div>
+      <div style="background:var(--hawk-panel); border:1px solid rgba(192,57,43,0.12); padding:20px 16px; text-align:center;">
+        <div style="font-family:'Orbitron',monospace; font-size:0.75rem; color:var(--hawk-yellow); margin-bottom:6px;">AI CHATBOT</div>
+        <div style="font-size:0.8rem; color:var(--hawk-text);">Answers security questions, accessible on any device</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAPABILITIES -->
+<section id="capabilities">
+  <div class="cap-wrap">
+    <div class="cap-header reveal">
+      <div class="section-label">// Features</div>
+      <h2 class="section-title">Platform <span>Capabilities</span></h2>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-card offensive reveal">
+        <span class="cap-tag">Offensive</span>
+        <div class="cap-title">Penetration Testing Engine</div>
+        <ul class="cap-list">
+          <li>Detects and cracks WEP networks — a protocol the industry abandoned, yet still widely deployed</li>
+          <li>Bypasses WPS PIN vulnerabilities in as few as 11,000 attempts — outpacing conventional scanners</li>
+          <li>Identifies rogue and misconfigured access points that ground-based tools miss entirely</li>
+          <li>Full credential recovery in ~3 minutes — twice as fast as leading alternatives</li>
+        </ul>
+      </div>
+      <div class="cap-card defensive reveal" style="transition-delay:0.1s">
+        <span class="cap-tag">Defensive</span>
+        <div class="cap-title">Threat Analysis & Reporting</div>
+        <ul class="cap-list">
+          <li>Precision risk classification engine: High / Medium / Low</li>
+          <li>Zero false positives — every alert is a verified, real-world threat</li>
+          <li>Instant on-screen security report generated the moment a scan completes</li>
+          <li>Plain-language remediation steps built for non-technical decision makers</li>
+        </ul>
+      </div>
+      <div class="cap-card ai reveal" style="transition-delay:0.2s">
+        <span class="cap-tag">AI-Powered</span>
+        <div class="cap-title">Intelligent Chatbot Assistant</div>
+        <ul class="cap-list">
+          <li>Answers wireless security questions instantly with contextual intelligence</li>
+          <li>Guides users through vulnerability findings and remediation steps</li>
+          <li>Translates complex technical results into clear, actionable language</li>
+        </ul>
+      </div>
+      <div class="cap-card coverage reveal" style="transition-delay:0.3s">
+        <span class="cap-tag">UAV Mobility</span>
+        <div class="cap-title">Unmatched Aerial Coverage</div>
+        <ul class="cap-list">
+          <li>Scans 1,200 m² per flight — over 167% more than any ground-based alternative</li>
+          <li>Clears physical barriers: walls, floors, and signal blockers are no obstacle</li>
+          <li>Simultaneous dual-band sweep across 2.4 GHz and 5 GHz — nothing escapes</li>
+          <li>Flight path dynamically optimized for maximum access point discovery</li>
+          <li>All processing handled onboard — no external server, no latency</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<section id="metrics">
+  <div class="metrics-wrap">
+    <div class="metrics-header reveal">
+      <div class="section-label">// Experimental Results</div>
+      <h2 class="section-title">Proven <span>Performance</span></h2>
+      <p style="margin-top:12px; color:var(--hawk-text); font-size:0.9rem;">
+        Tested across 3 independent flight sessions in a controlled 1,200 m² environment with 10 access points.
+      </p>
+    </div>
+    <div class="metrics-grid reveal">
+      <div class="metric-cell">
+        <div class="metric-val green">91.6%</div>
+        <div class="metric-label">Detection Rate</div>
+        <div class="metric-desc">Avg. across 3 sessions</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-val green">~3 min</div>
+        <div class="metric-label">Crack Speed</div>
+        <div class="metric-desc">2× faster than competitors</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-val green">+167%</div>
+        <div class="metric-label">Coverage Boost</div>
+        <div class="metric-desc">vs static ground tool</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-val green">36%</div>
+        <div class="metric-label">Avg CPU Load</div>
+        <div class="metric-desc">Raspberry Pi 5 utilization</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-val green">&lt;1 sec</div>
+        <div class="metric-label">Report Speed</div>
+        <div class="metric-desc">Kali pop-up report appears instantly</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section id="team">
+  <div class="team-wrap">
+    <div class="team-header reveal">
+      <div class="section-label">// The Team</div>
+      <h2 class="section-title">Meet the <span>Developers</span></h2>
+      <p style="margin-top:12px; color:var(--hawk-text); font-size:0.9rem;">
+        Community College of Qatar &nbsp;·&nbsp; B.Sc. Cybersecurity &nbsp;·&nbsp; Spring 2026
+      </p>
+    </div>
+
+    <!-- Developer Cards -->
+    <div class="team-grid reveal">
+
+      <!-- Talal -->
+      <div class="team-card">
+        <div class="team-avatar">⚡</div>
+        <div class="team-name">Talal Bader Al-Rumaihi</div>
+        <div class="team-role-tag">Developer & Software Specialist</div>
+      </div>
+
+      <!-- Abdulla -->
+      <div class="team-card hardware">
+        <div class="team-avatar">🔧</div>
+        <div class="team-name">Abdulla Mubarak Al-Nuaimi</div>
+        <div class="team-role-tag hw">Hardware Specialist</div>
+      </div>
+
+      <!-- Abdulrahman -->
+      <div class="team-card">
+        <div class="team-avatar">🔐</div>
+        <div class="team-name">Abdulrahman Faisal Al-Hajri</div>
+        <div class="team-role-tag">Security Analyst</div>
+      </div>
+
+    </div>
+
+    <!-- Supervisor -->
+    <div class="team-supervisor reveal">
+      <div class="sup-label">// Project Supervisor</div>
+      <div class="sup-name">Dr. Nadhir Ben Halima</div>
+      <div class="sup-sub">Community College of Qatar</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo" style="color:#fff;">CYBER<span style="color:#c0392b;">HAWK</span></div>
+  <div class="footer-sub">Drone-Based Wireless Security Assessment Platform</div>
+  <p class="footer-disclaimer">
+    CyberHawk is a research project developed at the Community College of Qatar. All penetration testing capabilities are designed exclusively for use in authorized environments in compliance with applicable cybersecurity regulations of the State of Qatar.
+  </p>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => io.observe(el));
+</script>
+</body>
+</html>
